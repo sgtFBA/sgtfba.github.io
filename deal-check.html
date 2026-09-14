@@ -392,14 +392,28 @@
   var alreadyUnlocked = false;
   try { alreadyUnlocked = localStorage.getItem(UNLOCK_KEY) === '1'; } catch (e) {}
 
-  if (justUnlocked || alreadyUnlocked) {
-    unlock();
-    if (justUnlocked && window.history && window.history.replaceState) {
-      var url = new URL(location.href);
-      url.searchParams.delete('unlocked');
-      window.history.replaceState({}, '', url.toString());
+  var inIframe = false;
+    try { inIframe = window.self !== window.top; } catch (e) { inIframe = true; }
+
+    if (justUnlocked && inIframe) {
+          // This is the Brevo confirmation redirect landing inside the embedded
+          // sign-up iframe. Break out to the full page so the whole tab unlocks,
+          // instead of showing a tiny nested copy of this page inside the iframe.
+      try {
+              var topUrl = new URL(window.top.location.href);
+              topUrl.searchParams.set('unlocked', '1');
+              window.top.location.href = topUrl.toString();
+  } catch (e) {
+              unlock();
+      }
+    } else if (justUnlocked || alreadyUnlocked) {
+          unlock();
+          if (justUnlocked && window.history && window.history.replaceState) {
+                  var url = new URL(location.href);
+               url.searchParams.delete('unlocked');
+                  window.history.replaceState({}, '', url.toString());
+          }
     }
-  }
 
   document.getElementById('manual-unlock').addEventListener('click', unlock);
 })();
